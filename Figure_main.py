@@ -14,10 +14,14 @@ coefficients and carrier distribution
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    parser.add_argument('-A', '--absorp', type=bool, default=True, help='whether exhibit absorp results')
+    parser.add_argument('-R', '--radiative', type=bool, default=True, help='whether exhibit radiative results')
+    parser.add_argument('-C', '--carrier', type=bool, default=True, help='whether exhibit carrier distribution ')
+
     parser.add_argument('-n', '--name', type=str, default='GaAs', help='the name of materials')
     parser.add_argument('-V', '--Vcell', type=float, nargs=1, default=300.0, help='volume of primitive cell, found in outcar')
     parser.add_argument('-S', '--Soc', type=bool,default=False, help='whether soc')
-    parser.add_argument('-p', '--path', type=str, default='./test_files/', help='dimension of materials')
+    parser.add_argument('-p', '--path', type=str, default='./test_files/', help='root path')
     parser.add_argument('-T', '--Trange', type=float, nargs='+', default=[300], help='range of temperature')
     parser.add_argument('-D', '--Density', type=float, nargs='+', default=[1E19], help='range of density')
     parser.add_argument('-VB', '--Valence', type=int, nargs='+', default=[32, 33, 34, 35, 36], help='valence bands')
@@ -42,8 +46,15 @@ if __name__ == '__main__':
     kpoints = args.kpoints
     Eg = args.Eg
     start_band = args.startband
+    absorp = args.absorp
+    radiative = args.radiative
+    carrier = args.carrier
+
 
     Figure = figure_plot(Name, path)
-    Figure.adsorption_coeff_plot(Eg= Eg)
-    #Figure.radiative_coeff_plot(1E15, 1E19)
-    #Figure.plot_k_slice(direction, kpoints, Vcell, T, D, VB, CB, soc, start_band)
+    if absorp == True:
+        Figure.adsorption_coeff_plot(Eg= Eg)
+    if radiative == True:
+        Figure.radiative_coeff_plot(1E15, 1E19)
+    if carrier == True:
+        Figure.plot_k_slice(direction, kpoints, Vcell, T, D, VB, CB, soc, start_band)
