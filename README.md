@@ -23,7 +23,7 @@ $ pip install -r requirements.txt
 ```
 
 ## Usage
-A tutorial notebook will be added later
+A tutorial notebook will be added later.
 The basic steps are summarized below:
 
 0. Perform a first-principles calculation of the target superconductor system. The transmatrix values (Transmatrix file) can be obtain with setting the parameter 'LOPTICS = True' based on a inplemented VASP version. A good explanation of its methodology can be found in this [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high quality calculation with enough k sampling points in Brillouin Zone when start electronic self-consistency steps is necessary as input for the radiative recombination coefficients since too coarse original k-grid sampling in Brillouin zone will introduce some deviations.
