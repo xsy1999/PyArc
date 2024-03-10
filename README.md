@@ -44,7 +44,7 @@ The basic steps are summarized below:
  ```
  $python Figure_main.py -A True -VB [34, 35, 36] -CB [37, 38, 39] -E 2.39
  ```
-users can obtain final results files in under the work path they defined
+ users can obtain final results files under the work path they defined
 
 ## Contributing
 To contribute, see the above section on installing [for development](#for-development).
