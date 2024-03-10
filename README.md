@@ -54,7 +54,7 @@ Potential contribution areas are:
  - [ ] add more robust tests for various functions
 
 #### How to Cite
-If you use our code to calculate nonradiative capture rates, please consider citing
+If you use our code to calculate absorption coefficients or radiative recombination coefficients, please consider citing
 ```
 @article{Xie Zhang_first-principles_2018,
 	title = {First-Principles Analysis of Radiative Recombination in Lead-Halide Perovskites},
