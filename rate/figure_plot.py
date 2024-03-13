@@ -38,15 +38,17 @@ class figure_plot:
             plt.plot(density, Bcoeff[i], 'o-', label='$T$ = %s K' % T[i])
         if xmin == None: xmin = min(density)
         if xmax == None: xmax = max(density)
+        ymin = Bcoeff.min() / 1.2
+        ymax = Bcoeff.max() * 1.2
         plt.xscale('log')
-        # plt.yscale('log')
+        plt.yscale('log')
         plt.xlim([xmin, xmax])
-        #plt.ylim([1e-13, 1e-8])
+        plt.ylim([ymin, ymax])
         plt.xlabel(r"Carrier density (cm$^{-3}$)")
         plt.ylabel(r"$B$ coefficient (cm$^{3}$s$^{-1}$)")
 
         plt.legend()
-        plt.savefig('Bcoeff-' + self.name + '_trail.png')  # file name
+        plt.savefig(self.path + 'Bcoeff-' + self.name + '_trail.png')  # file name
         plt.figure()
 
         t1 = 1 / (Bcoeff * density) * 1e9
@@ -59,8 +61,7 @@ class figure_plot:
         plt.xlabel(r"Carrier density (cm$^{-3}$)")
         plt.ylabel(r"Radiative lifetime (ns)")
         plt.legend()
-        plt.savefig('lifetime-' + self.name + '_trail.png')  # file name
-        plt.show()
+        plt.savefig(self.path + 'lifetime-' + self.name + '_trail.png')  # file name
 
     def adsorption_coeff_plot(self, Eg, Amax = -1, fsize = 12):
         file = self.path + 'Absorption-' + self.name + '.dat'
@@ -245,8 +246,6 @@ class figure_plot:
             else:
                 density = density * 1.0 / self.Vcell_cm
 
-            print(step, efermi, density)
-
             if abs(density - density_au) / density_au < 1.0E-6:
                 break
             if density > density_au:
@@ -345,7 +344,6 @@ class figure_plot:
             else:
                 density = density * 1.0 / self.Vcell_cm
 
-            print(iT, "kT, density = ", density)
             if abs(density - density_au) / density_au < 1.0E-2:
                 print("99% electron density achieved!")
                 break
@@ -379,7 +377,6 @@ class figure_plot:
             else:
                 density = density * 1.0 / self.Vcell_cm
 
-            print(iT, "kT, density = ", density)
             if abs(density - density_au) / density_au < 1.0E-2:
                 print("99% electron density achieved!")
                 break
@@ -425,10 +422,9 @@ if __name__ == '__main__':
     CB = [37, 38, 39]#[81, 82, 83, 84]#cbm
 
     Eg = 8.0
-    EgR = 1.424
 
     Vcell = 180
     Figure = figure_plot('GaAs', '../test_files/')
-    #Figure.adsorption_coeff_plot(Eg=Eg, EgR=EgR)
+    #Figure.adsorption_coeff_plot(Eg=Eg)
     #Figure.radiative_coeff_plot(1E15, 1E19)
     Figure.plot_k_slice('z', [0.0], Vcell, T1, D1, VB, CB, False, 20)

@@ -462,7 +462,7 @@ class rate_cal:
 
     def get_Radcoeffi_results(self, T: np.ndarray, density: np.ndarray):
         Rate = []
-        for t in T:
+        for t in tqdm(T, desc="t"):
             for d in density:
                 rate, rate_x, rate_y, rate_z = self.calculate(t, d)
                 Rate.append(rate/d ** 2)
