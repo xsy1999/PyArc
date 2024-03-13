@@ -30,19 +30,19 @@ The basic steps are summarized below:
 1. Calculate a denser k-grid of both eigenvalues and transmatrix values by the interpolation method offered in our code. This is facilitated using the `Interp_main.py` function. Through setting relevant parameters like the magnification factor or valence bands and conduction bands, the interpolated eigenvalues and transmatrix values will be obtained as `Eigen_geninterp.dat` and `matrix_fine.dat` file respectively.
  The way to excute `Interp_main.py` function can be
  ```
- $python Interp_main.py -VB [32, 33, 34, 35, 36] -CB [37, 38, 39, 40, 41] -m [10, 10, 10]
+ $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
  ```
 2. Calculate the absorption coefficients and radiative recombination coefficients. This is facilitated by the `Coefficients_main.py` function. Also, for both two coefficients calculations, a series of parameters should be delivered to the function according to demands as below. Then files like `Absorption-GaAs.dat` or `Radiative-GaAs_trail.dat` will be generated to store those results.
  ```
- $python Coefficients_main.py -A True -R True -VB [32, 33, 34, 35, 36] -CB [37, 38, 39, 40, 41] -E [1, 300, 3] # absorption coefficients
- $python Coefficients_main.py -R True -VB [34, 35, 36] -CB [37, 38, 39] -u 1.58 -V 180 -S false -T [100, 200, 300] # radiative recombinaiton coefficients
+ $python Coefficients_main.py -A True -R True -E 1 3 300 # absorption coefficients
+ $python Coefficients_main.py -R True -u 3.89 -V 180 -S false -T 100 200 300 # radiative recombinaiton coefficients
  or 
- $python Coefficients_main.py -A True R True -VB [32, 33, 34, 35, 36] -CB [37, 38, 39, 40, 41] -u 1.58 -V 180 -S false -T [100, 200, 300] # calculate both
+ $python Coefficients_main.py -A True R True -u 1.58 -V 180 -S false -T 100 200 300 # calculate both
  ```
 
 3. Plot the calculation results including absorption coefficients and radiative recombination coefficients under different conditions. This is facilitated by the `Figure_main.py` function. It also support to plot carrier density distribution. The way to execute this function can be
  ```
- $python Figure_main.py -A True -VB [34, 35, 36] -CB [37, 38, 39] -E 2.39
+ $python Figure_main.py -A True -R True -VB 34 35 36 -CB 37 38 39 -E 1.42
  ```
  users can obtain final results files under the work path they defined
 
