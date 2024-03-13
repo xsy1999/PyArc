@@ -19,15 +19,13 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--path', type=str, default='./test_files/', help='Path of transmatrix file, should include IBZKPT file')
     parser.add_argument('-VB', '--nvb', type=int, nargs='+', default=[32, 33, 34, 35, 36], help='Number of valence bands')
     parser.add_argument('-CB', '--ncb', type=int, nargs='+', default=[37, 38, 39, 40, 41],help='Number of conduction bands')
-    parser.add_argument('-d', '--dimension', type=int, choices=(2, 3), default=3, help='Dimension of materials')
-    parser.add_argument('-m', '--magnification', type=int, nargs=3, default=[10, 10, 10],help='magnification factor (nx, ny, nz)')
-    parser.add_argument('-M', '--method', choices=['linear', 'cubic'], default=['linear', 'cubic'], help='Interpolate methods first for trans and second for eigenvalues')
+    parser.add_argument('-m', '--magnification', type=int, nargs=3, default=[10, 10, 10],help='Mesh to generate kpoints (nx, ny, nz)')
+    parser.add_argument('-M', '--method', nargs='+', choices=['linear', 'cubic'], default=['linear', 'cubic'], help='Interpolate methods first for trans second for eigenvalues')
     args = parser.parse_args()
 
     a = np.array(args.nvb)
     b = np.array(args.ncb)
     root = args.path
-    dim = args.dimension
     mag = args.magnification
     method = args.method
 

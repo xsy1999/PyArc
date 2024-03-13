@@ -1,27 +1,49 @@
-Brotli @ file:///D:/bld/brotli-split_1695989908365/work
-certifi @ file:///home/conda/feedstock_root/build_artifacts/certifi_1707022139797/work/certifi
-charset-normalizer @ file:///home/conda/feedstock_root/build_artifacts/charset-normalizer_1698833585322/work
-colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1666700638685/work
-cycler @ file:///home/conda/feedstock_root/build_artifacts/cycler_1696677705766/work
-idna @ file:///home/conda/feedstock_root/build_artifacts/idna_1701026962277/work
-kiwisolver @ file:///D:/bld/kiwisolver_1695380176938/work
-matplotlib @ file:///D:/bld/matplotlib-base_1594091905736/work
-numpy @ file:///D:/bld/numpy_1687808486521/work
-packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1696202382185/work
-platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_1706713388748/work
+Brotli
+certifi
+charset-normalizer
+colorama
+contourpy==1.1.1
+cycler
+docutils==0.20.1
+fonttools==4.49.0
+idna
+importlib_metadata==7.0.2
+importlib_resources==6.3.0
+jaraco.classes==3.3.1
+keyring==24.3.1
+kiwisolver
+markdown-it-py==3.0.0
+matplotlib==3.7.1
+mdurl==0.1.2
+more-itertools==10.2.0
+nh3==0.2.15
+numpy
+packaging
+pillow==10.2.0
+pkginfo==1.10.0
+platformdirs
 ply==3.11
-pooch @ file:///home/conda/feedstock_root/build_artifacts/pooch_1708448481555/work
-pyparsing @ file:///home/conda/feedstock_root/build_artifacts/pyparsing_1690737849915/work
+pooch
+Pygments==2.17.2
+pyparsing
 PyQt5==5.15.10
-PyQt5-sip @ file:///C:/b/abs_c0pi2mimq3/croot/pyqt-split_1698769125270/work/pyqt_sip
-PySocks @ file:///D:/bld/pysocks_1661604991356/work
-python-dateutil @ file:///home/conda/feedstock_root/build_artifacts/python-dateutil_1709299778482/work
-requests @ file:///home/conda/feedstock_root/build_artifacts/requests_1684774241324/work
+PyQt5-sip
+PySocks
+python-dateutil
+pywin32-ctypes==0.2.2
+readme_renderer==43.0
+requests
+requests-toolbelt==1.0.0
+rfc3986==2.0.0
+rich==13.7.1
 scipy==1.10.1
-sip @ file:///D:/bld/sip_1697300573334/work
-six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
-tomli @ file:///home/conda/feedstock_root/build_artifacts/tomli_1644342247877/work
-tornado @ file:///D:/bld/tornado_1708363253587/work
-tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1707598593068/work
-urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1708239446578/work
-win-inet-pton @ file:///D:/bld/win_inet_pton_1667051142467/work
+sip
+six
+tomli
+tornado
+tqdm
+twine==5.0.0
+typing_extensions==4.10.0
+urllib3
+win-inet-pton
+zipp==3.18.0
