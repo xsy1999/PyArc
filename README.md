@@ -45,6 +45,8 @@ The basic steps are summarized below:
  $python Figure_main.py -A True -R True -VB 34 35 36 -CB 37 38 39 -E 1.42
  ```
  users can obtain final results files under the work path they defined
+ 
+4. Users can find GaAs data as an example in test_files. The Transmatrix file are zipped.
 
 ## Contributing
 To contribute, see the above section on installing [for development](#for-development).
