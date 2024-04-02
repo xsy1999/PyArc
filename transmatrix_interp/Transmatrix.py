@@ -162,7 +162,7 @@ class Transmatrix:
         #EIGEN = eigen_interpolator.interpolate_kmesh(self.Eigenvalue, magx, magy, magz)
         Eigpath = os.path.join(self.path + 'Eigen_geninterp.dat')
         f = open(Eigpath, 'w')
-        f.write(' Written data \n')
+        f.write('# Written data \n')
         f.write('# Input file comment: kmesh %s %s %s\n' % (nintx, ninty, nintz))
         f.write('#  Kpt_idx   K_x (1/ang)   K_y (1/ang)   K_z (1/ang)   Energy (eV)\n')
         kidx = 1 #num of k points calculated
