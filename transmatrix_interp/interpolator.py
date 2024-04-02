@@ -151,7 +151,7 @@ class bicubic_interp(base_interpolator):
 		x = (np.arange(0, nc_x + 2, 1) - math.ceil(nc_x/2))/nc_x
 		y = (np.arange(0, nc_y + 2, 1) - math.ceil(nc_y/2))/nc_y
 		z = (np.arange(0, nc_z + 2, 1) - math.ceil(nc_z/2))/nc_z
-		f = RegularGridInterpolator((x, y, z), data)
+		f = RegularGridInterpolator((x, y, z), data, method='cubic')
 
 
 		sr = f(kpoints)
