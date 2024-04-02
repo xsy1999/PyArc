@@ -31,6 +31,7 @@ class rate_cal:
         self.conversion_factor = const.eV2erg * (const.hbar / const.abohr) ** 2
         FineKptfile = os.path.join(self.path + 'wannier90_geninterp.kpt')
         FineEigfile = os.path.join(self.path + 'wannier90_geninterp.dat')
+        FineEigfile1 = os.path.join(self.path + 'Eigen_geninterp.dat')
         FineTransfile = os.path.join(self.path + 'matrix_fine.dat')
         Ori_eigfile = os.path.join(self.path + 'EIGENVAL')
         self.soc = soc
@@ -44,6 +45,8 @@ class rate_cal:
         #obtain dense mesh Eigenvalues
         if os.path.exists(FineEigfile) is True:
             _, eignum, self.Eigs = read_wannier_eigs(FineEigfile)
+        elif os.path.exists(FineEigfile1) is True:
+            _, eignum, self.Eigs = read_wannier_eigs(FineEigfile1)
         elif os.path.exists(Ori_eigfile):
             Eigs = self.interpolator.interpolate_kpoints(Eigenvalue, kpts[:, 1:])
             Eigs = np.expand_dims(Eigs, axis=2)
