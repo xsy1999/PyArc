@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('-VB', '--nvb', type=int, nargs='+', default=[32, 33, 34, 35, 36], help='Number of valence bands')
     parser.add_argument('-CB', '--ncb', type=int, nargs='+', default=[37, 38, 39, 40, 41],help='Number of conduction bands')
     parser.add_argument('-m', '--magnification', type=int, nargs=3, default=[10, 10, 10],help='Mesh to generate kpoints (nx, ny, nz)')
-    parser.add_argument('-M', '--method', nargs='+', choices=['linear', 'cubic'], default=['linear', 'cubic'], help='Interpolate methods first for trans second for eigenvalues')
+    parser.add_argument('-M', '--method', nargs='+', choices=['linear', 'cubic'], default=['linear', 'linear'], help='Interpolate methods first for trans second for eigenvalues')
     args = parser.parse_args()
 
     a = np.array(args.nvb)
