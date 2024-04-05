@@ -46,7 +46,7 @@ The basic steps are summarized below:
  ```
  users can obtain final results files under the work path they defined
  
-4. Users can find GaAs data as an example in test_files. The Transmatrix file are zipped.
+4. Users can find GaAs data as an example in test_files. The Transmatrix file and wannier interpolated data file are zipped.
 
 ## Contributing
 To contribute, see the above section on installing [for development](#for-development).
