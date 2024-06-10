@@ -32,6 +32,10 @@ The basic steps are summarized below:
  ```
  $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
  ```
+ and also could be added some parameters like
+ ```
+ $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
+ ```
 2. Calculate the absorption coefficients and radiative recombination coefficients. This is facilitated by the `Coefficients_main.py` function. Also, for both two coefficients calculations, a series of parameters should be delivered to the function according to demands as below. Then files like `Absorption-GaAs.dat` or `Radiative-GaAs_trail.dat` will be generated to store those results.
  ```
  $python Coefficients_main.py -A True -R True -E 1 3 300 # absorption coefficients
