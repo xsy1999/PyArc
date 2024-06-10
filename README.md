@@ -26,17 +26,22 @@ $ pip install -r requirements.txt
 A tutorial notebook will be added later.
 The basic steps are summarized below:
 
-0. Perform a first-principles calculation of the target superconductor system. The transmatrix values (Transmatrix file) can be obtain with setting the parameter 'LOPTICS = True' using a modified VASP version. A good explanation of its methodology can be found in this book [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high quality calculation with enough k sampling points in Brillouin Zone when start electronic self-consistency steps is necessary for the radiative recombination coefficients since too coarse original k-grid sampling in Brillouin zone will introduce some deviations.
+0. Perform a first-principles calculation of the target superconductor system. The transmatrix values (Transmatrix file) can be obtain with setting the parameter 'LOPTICS = True' using a modified VASP version (we will offer the patch file for VASP later). A good explanation of its methodology can be found in this book [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high quality calculation with enough k sampling points in Brillouin Zone when start electronic self-consistency steps is necessary for the radiative recombination coefficients since too coarse original k-grid sampling in Brillouin zone will introduce some deviations.
 1. Calculate a denser k-grid of both eigenvalues and transmatrix values by the interpolation method offered in our code. This is facilitated using the `Interp_main.py` function. Through setting relevant parameters like the magnification factor or valence bands and conduction bands, the interpolated eigenvalues and transmatrix values will be obtained as `Eigen_geninterp.dat` and `matrix_fine.dat` file respectively.
- The way to excute `Interp_main.py` function can be
+ The way to excute `Interp_main.py` function can be(default parameters for testfiles)
  ```
- $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
+ $python Interp_main.py
  ```
- and also could be added some parameters like
+   and also could be added some parameters like
  ```
  $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
  ```
 2. Calculate the absorption coefficients and radiative recombination coefficients. This is facilitated by the `Coefficients_main.py` function. Also, for both two coefficients calculations, a series of parameters should be delivered to the function according to demands as below. Then files like `Absorption-GaAs.dat` or `Radiative-GaAs_trail.dat` will be generated to store those results.
+   run with default parameters for test files
+ ```
+ $python Coefficients_main.py
+ ```
+ or add parameters like
  ```
  $python Coefficients_main.py -A True -R True -E 1 3 300 # absorption coefficients
  $python Coefficients_main.py -R True -u 3.89 -V 180 -S false -T 100 200 300 # radiative recombinaiton coefficients
@@ -44,7 +49,11 @@ The basic steps are summarized below:
  $python Coefficients_main.py -A True R True -u 1.58 -V 180 -S false -T 100 200 300 # calculate both
  ```
 
-3. Plot the calculation results including absorption coefficients and radiative recombination coefficients under different conditions. This is facilitated by the `Figure_main.py` function. It also support to plot carrier density distribution. The way to execute this function can be
+3. Plot the calculation results including absorption coefficients and radiative recombination coefficients under different conditions. This is facilitated by the `Figure_main.py` function. It also support to plot carrier density distribution. The way to execute this function can be (with default parameters for testfiles)
+ ```
+ $python Figure_main.py
+ ```
+ or set parameters like
  ```
  $python Figure_main.py -A True -R True -VB 34 35 36 -CB 37 38 39 -E 1.42
  ```
