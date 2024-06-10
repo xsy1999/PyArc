@@ -32,7 +32,7 @@ The basic steps are summarized below:
  ```
  $python Interp_main.py
  ```
-   and also could be added some parameters like
+ and also could be added some parameters like
  ```
  $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
  ```
