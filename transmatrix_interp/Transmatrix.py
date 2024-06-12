@@ -138,18 +138,21 @@ class Transmatrix:
         f.write('crystal\n')
         f.write('%s\n' % int(nintx * ninty * nintz))
         kidx = 1 # num of k points calculated
-        for kx, ky, kz in zip(XXf.flatten(), YYf.flatten(), ZZf.flatten()):
-            kx = 0.5 - ((0.5 - kx) % 1)
-            if abs(kx + 0.5) < 1e-5:
-                kx += 1
-            ky = 0.5 - ((0.5 - ky) % 1)
-            if abs(ky + 0.5) < 1e-5:
-                ky += 1
-            kz = 0.5 - ((0.5 - kz) % 1)
-            if abs(kz + 0.5) < 1e-5:
-                kz += 1
-            f.write("%s %.3f %.3f %.3f\n" % (kidx, kx, ky, kz))
-            kidx += 1
+        with tqdm(total=XXf.flatten().shape[0]) as pbar:
+            pbar.set_description("kpoints file writing")
+            for kx, ky, kz in zip(XXf.flatten(), YYf.flatten(), ZZf.flatten()):
+                pbar.update(1)
+                kx = 0.5 - ((0.5 - kx) % 1)
+                if abs(kx + 0.5) < 1e-5:
+                    kx += 1
+                ky = 0.5 - ((0.5 - ky) % 1)
+                if abs(ky + 0.5) < 1e-5:
+                    ky += 1
+                kz = 0.5 - ((0.5 - kz) % 1)
+                if abs(kz + 0.5) < 1e-5:
+                    kz += 1
+                f.write("%s %.3f %.3f %.3f\n" % (kidx, kx, ky, kz))
+                kidx += 1
         f.close()
         print("kpoints for interpolating are generated, please use eigenvalue interpolators to generate fine eigenvalue mesh")
 
@@ -165,19 +168,24 @@ class Transmatrix:
         f.write('# Written data \n')
         f.write('# Input file comment: kmesh %s %s %s\n' % (nintx, ninty, nintz))
         f.write('#  Kpt_idx   K_x (1/ang)   K_y (1/ang)   K_z (1/ang)   Energy (eV)\n')
-        kidx = 1 #num of k points calculated
-        for kx, ky, kz in zip(XXf.flatten(), YYf.flatten(), ZZf.flatten()):
-            kx = 0.5 - ((0.5 - kx) % 1)
-            if abs(kx + 0.5) < 1e-5:
-                kx += 1
-            ky = 0.5 - ((0.5 - ky) % 1)
-            if abs(ky + 0.5) < 1e-5:
-                ky += 1
-            kz = 0.5 - ((0.5 - kz) % 1)
-            if abs(kz + 0.5) < 1e-5:
-                kz += 1
-            eig = eigen_interpolator.interpolate_kpoints(self.Eigenvalue, np.array([kx,ky,kz])).squeeze()
-            for bnd in range(eig.shape[0]):
-                f.write("%s   %.3f   %.3f   %.3f   %.5f\n" % (kidx, kx, ky, kz, eig[bnd]))
-            kidx += 1
+        kidx = 0 #num of k points calculated
+        kpoints = np.array([XXf.flatten(), YYf.flatten(), ZZf.flatten()]).T
+        #eigs = eigen_interpolator.interpolate_kpoints(self.Eigenvalue, kpoints)
+        with tqdm(total=kpoints.shape[0]) as pbar:
+            pbar.set_description("Interpolated Eigenvalues file writing by default method")
+            for kx, ky, kz in zip(XXf.flatten(), YYf.flatten(), ZZf.flatten()):
+                pbar.update(1)
+                kx = 0.5 - ((0.5 - kx) % 1)
+                if abs(kx + 0.5) < 1e-5:
+                    kx += 1
+                ky = 0.5 - ((0.5 - ky) % 1)
+                if abs(ky + 0.5) < 1e-5:
+                    ky += 1
+                kz = 0.5 - ((0.5 - kz) % 1)
+                if abs(kz + 0.5) < 1e-5:
+                    kz += 1
+                eig = eigen_interpolator.interpolate_kpoints(self.Eigenvalue, np.array([kx,ky,kz])).squeeze()
+                for bnd in range(eig.shape[0]):
+                    f.write("%s   %.3f   %.3f   %.3f   %.5f\n" % (kidx, kx, ky, kz, eig[bnd]))
+                kidx += 1
         f.close()

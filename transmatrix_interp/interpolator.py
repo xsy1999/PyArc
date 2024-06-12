@@ -72,39 +72,16 @@ class linear_interp(base_interpolator):
 		nc_x = data.shape[0]
 		nc_y = data.shape[1]
 		nc_z = data.shape[2]
+		data = np.pad(data, ((1,1), (1,1), (1,1), (0,0)), 'wrap')
 
-		meshx = np.array([i / nc_x for i in range(nc_x)]) - (math.ceil(nc_x / 2) - 1)/nc_x
-		meshy = np.array([i / nc_y for i in range(nc_y)]) - (math.ceil(nc_y / 2) - 1) / nc_y
-		meshz = np.array([i / nc_z for i in range(nc_z)]) - (math.ceil(nc_z / 2) - 1) / nc_z
+		x = (np.arange(0, nc_x + 2, 1) - math.ceil(nc_x/2))/nc_x
+		y = (np.arange(0, nc_y + 2, 1) - math.ceil(nc_y/2))/nc_y
+		z = (np.arange(0, nc_z + 2, 1) - math.ceil(nc_z/2))/nc_z
+		f = RegularGridInterpolator((x, y, z), data)
 
-		dataf = []
 
-		for kpoint in kpoints:
-			nx0 = np.sum(meshx < kpoint[0]) - 1
-			nx1 = nx0 + 1
-			xd = min(abs(kpoint[0] - meshx[nx0]), abs(kpoint[0] - meshx[nx0] + 1))
-
-			ny0 = np.sum(meshy < kpoint[1]) - 1
-			ny1 = ny0 + 1
-			yd = min(abs(kpoint[0] - meshx[nx0]), abs(kpoint[0] - meshx[nx0] + 1))
-
-			nz0 = np.sum(meshz < kpoint[2]) - 1
-			nz1 = nz0 + 1
-			zd = min(abs(kpoint[0] - meshx[nx0]), abs(kpoint[0] - meshx[nx0] + 1))
-
-			c000 = data[nx0, ny0, nz0] * (1 - xd) * (1 - yd) * (1 - zd)
-			c001 = data[nx0, ny0, nz1] * (1 - xd) * (1 - yd) * zd
-			c010 = data[nx0, ny1, nz0] * (1 - xd) * yd * (1 - zd)
-			c011 = data[nx0, ny1, nz1] * (1 - xd) * yd * zd
-			c100 = data[nx1, ny0, nz0] * xd * (1 - yd) * (1 - zd)
-			c101 = data[nx1, ny0, nz1] * xd * (1 - yd) * zd
-			c110 = data[nx1, ny1, nz0] * xd * yd * (1 - zd)
-			c111 = data[nx1, ny1, nz1] * xd * yd * zd
-
-			c = c000 + c001 + c010 + c011 + c100 + c101 + c110 + c111
-			dataf.append(c)
-
-		return np.array(dataf)
+		sr = f(kpoints)
+		return sr
 
 ############################################################
 
