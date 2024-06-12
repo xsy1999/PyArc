@@ -31,7 +31,7 @@ To apply the patch file, please download the related 'optics.diff' file into VAS
 ```
 $patch ./src/linear_optics.F < optics.diff
 ```
-and then recompile VASP. After those steps, one can find "Transmatrix" result file under calculation menu with parameter 'LOPTICS = True'.
+	and then recompile VASP. After those steps, one can find "Transmatrix" result file under calculation menu with parameter 'LOPTICS = True'.
 A good explanation of our methodology can be found in this book [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high quality calculation with enough k sampling points in Brillouin Zone when start electronic self-consistency steps is necessary for the radiative recombination coefficients since too coarse original k-grid sampling in Brillouin zone will introduce some deviations.
 1. Calculate a denser k-grid of both eigenvalues and transmatrix values by the interpolation method offered in our code. This is facilitated using the `Interp_main.py` function. Through setting relevant parameters like the magnification factor or valence bands and conduction bands, the interpolated eigenvalues and transmatrix values will be obtained as `Eigen_geninterp.dat` and `matrix_fine.dat` file respectively.
 The way to excute `Interp_main.py` function can be(default parameters for testfiles)
