@@ -1,0 +1,376 @@
+--- ../../vasp.5.4.4-test1/vasp.5.4.4/src/linear_optics.F	2017-04-20 17:03:58.000000000 +0800
++++ src/linear_optics.F	2024-06-11 18:15:38.000000000 +0800
+@@ -1,4 +1,5 @@
+ #include "symbol.inc"
++#define FF_mod
+ 
+ MODULE mlr_optic
+   USE prec
+@@ -650,6 +651,9 @@
+     REAL(q)  :: COND_ENERGY(:,:,:,:)
+ ! local variables
+     GDEFS   :: CHAM(:,:,:,:,:)
++#ifdef FF_mod
++    GDEF,allocatable  :: CHAM_(:,:,:,:,:)
++#endif
+     REAL(q) :: ENERGY_DER(:,:,:,:)
+     REAL(q) :: WPLASMON(3,3), CON(3,3), BIMAG(3,3)
+     COMPLEX(q) :: WPLASMA_INTER(3,3)
+@@ -745,6 +749,25 @@
+ ! determine imaginary part of the frequency dependent macroscopic 
+ ! dielectric matrix
+ !=======================================================================
++#ifdef FF_mod
++      allocate(CHAM_(WDES%NB_TOT,WDES%NB_TOT,WDES%NKPTS,WDES%ISPIN,3))
++!ff rescale the stuff to fit with vasp44.bse
++      DO IDIR=1,3
++      DO ISP=1,WDES%ISPIN
++      DO NK=1,WDES%NKPTS
++      DO N2=1,WDES%NB_TOT
++      DO N1=1,WDES%NB_TOT
++         CHAM_(N1,N2,NK,ISP,IDIR)=CHAM(N1,N2,NK,ISP,IDIR)*AUTOA*(REAL(W0%CELTOT(N1,NK,ISP)-W0%CELTOT(N2,NK,ISP),q))/(2.0_q*HSQDTM)
++      ENDDO
++      ENDDO
++      ENDDO
++      ENDDO
++      ENDDO
++!         CALLMPI( M_sum_g(WDES%COMM,CHAM_(1,1,1,1,1),WDES%NB_TOT**2*WDES%ISPIN*WDES%NKPTS*3))
++      CALL WRITE_TRANSMATRIX(WDES, W0, CHAM_(:,:,:,:,:),IO,INFO)
++      deallocate(CHAM_)
++#endif
++
+     BIMAG=0
+     DO IDIR=1,3
+       DO JDIR=1,3
+@@ -869,6 +892,163 @@
+ 
+   END SUBROUTINE LRF_EPSILON
+ 
++#ifdef FF_mod
++  SUBROUTINE WRITE_TRANSMATRIX(WDES, W0, CHAM, IO, INFO)
++      use base
++      use wave
++      USE constant
++      IMPLICIT NONE
++      TYPE (wavedes) :: WDES
++      TYPE (wavespin):: W0
++      GDEF           :: CHAM(:,:,:,:,:) ! CHAM(m,n,NK,ISP,j) <phi_nk+q|e^iq|phi_mk>
++      TYPE (in_struct)   :: IO
++      TYPE (info_struct) :: INFO
++!local
++      INTEGER   :: NC,NV,NK,NBVAL(INFO%ISPIN),NBCON(INFO%ISPIN),ISP
++      REAL(q)   :: EC,EV,E1,E2,CBM(INFO%ISPIN),ADDBM(INFO%ISPIN)
++      COMPLEX(q):: imag
++
++      INTEGER IU5,IU0,IDUM
++      INTEGER ITYP,NTYP
++      INTEGER ADDBAND, N, IERR, DEFECTBAND
++      REAL(q) RDUM
++      COMPLEX(q) CDUM
++      LOGICAL LOPEN,LDUM
++      LOGICAL LTMEXTENDED
++      CHARACTER (1) :: CHARAC
++
++      imag=(0.0_q,1.0_q)
++
++      IU5=IO%IU5
++
++!     ADDBAND>0 means that transition matrix elements for ADDBAND conduction
++!     bands cb-cb transition matrix elements are written to Transmatrix.
++
++      ADDBAND=0
++
++      LOPEN=.FALSE.
++      OPEN(UNIT=IU5,FILE='INCAR',STATUS='OLD')
++
++      CALL RDATAB(LOPEN,'INCAR',IU5,'ADDBAND','=','#',';','I', &
++     &            ADDBAND,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                  ((IERR==0).AND.(N<1))) THEN
++           WRITE(*,*)'Error reading item ''ADDBAND'' from file INCAR.'
++      ENDIF
++      CLOSE(IU5)
++
++      DEFECTBAND=0
++
++      LOPEN=.FALSE.
++      OPEN(UNIT=IU5,FILE='INCAR',STATUS='OLD')
++
++      CALL RDATAB(LOPEN,'INCAR',IU5,'DEFECTBAND','=','#',';','I', &
++     &            DEFECTBAND,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                  ((IERR==0).AND.(N<1))) THEN
++           WRITE(*,*)'Error reading item ''DEFECTBAND'' from file INCAR.'
++      ENDIF
++      CLOSE(IU5)
++!     We introduce spin-dependent valence band numbers to deal with
++!     ferromagnets.
++
++      NBVAL=1
++      DO ISP=1,INFO%ISPIN
++         DO NK=1,WDES%NKPTS
++            DO N=1,WDES%NB_TOT
++               IF (W0%FERTOT(N,NK,ISP).gt.0.4_q) THEN
++                   IF (N.GT.NBVAL(ISP)) NBVAL(ISP)=N
++               ENDIF
++            ENDDO
++         ENDDO
++         NBCON(ISP)=WDES%NB_TOT-NBVAL(ISP)
++      ENDDO
++
++      IF (IO%IU6>=0) THEN
++         DO ISP=1,INFO%ISPIN
++            IF (ISP.eq.1) write(*,*) 'Write Transmatrix.',NBVAL(ISP),NBCON(ISP)
++            IF (ISP.eq.2) write(*,*) 'Write Transmatrix_s2.',NBVAL(ISP),NBCON(ISP)
++            CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,1,1),q)
++            ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,1,1),q)
++            IF (DEFECTBAND.ne.0) OPEN(192,FILE ='Transmatrix_defectband_from_VBM')
++            IF (DEFECTBAND.ne.0) OPEN(193,FILE ='Transmatrix_defectband_to_CBM')
++            IF (ISP.eq.1) OPEN(99,FILE = 'Transmatrix')
++            IF (ISP.eq.2) OPEN(99,FILE = 'Transmatrix_s2')
++            IF (ADDBAND.GT.0) THEN
++               IF (ISP.eq.1) OPEN(97,FILE = 'Transmatrix_additional')
++               IF (ISP.eq.2) OPEN(97,FILE = 'Transmatrix_s2_additional')
++            ENDIF
++        IF (DEFECTBAND.ne.0) THEN
++               DO NK=1,WDES%NKPTS
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q).LT.CBM(ISP)) CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q)
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q).LT.ADDBM(ISP)) ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q)
++               !from VBM
++                  NC=DEFECTBAND
++                  EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                  DO NV=1,NBVAL(ISP)
++                     EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                     write(192,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                        WDES%WTKPT(NK),NC,NV,EC,EV,&
++                        GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,3))
++                  ENDDO !NV
++               !to CBM
++                DO NC=NBVAL(ISP)+1,NBCON(ISP)+NBVAL(ISP)
++                  EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                  NV=DEFECTBAND
++                     EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                     write(193,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                        WDES%WTKPT(NK),NC,NV,EC,EV,&
++                        GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,3))
++               ENDDO !NC
++               ENDDO !NK
++            CLOSE(192)
++            CLOSE(193)
++            IF (DEFECTBAND.GT.0) WRITE(*,*) 'HP: Considered band ', DEFECTBAND, ' as the defect band, and wrote out all relevant dipole matrix elements. '
++
++        ELSE
++            DO NK=1,WDES%NKPTS
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q).LT.CBM(ISP)) CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q)
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q).LT.ADDBM(ISP)) ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q)
++               DO NC=NBVAL(ISP)+1,NBCON(ISP)+NBVAL(ISP)
++                  EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                  DO NV=1,NBVAL(ISP)
++                     EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                     write(99,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                        WDES%WTKPT(NK),NC,NV,EC,EV,&
++                        GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,3))
++                  ENDDO
++               ENDDO
++
++               IF (ADDBAND.GT.0) THEN
++                  DO NV=NBVAL(ISP)+1,NBVAL(ISP)+ADDBAND
++                     EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                     DO NC=NV+1,NBCON(ISP)+NBVAL(ISP)
++                        EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                        write(97,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                           WDES%WTKPT(NK),NC,NV,EC,EV, &
++                           GCONJG(CHAM(NC,NV,NK,ISP,1)), &
++                           GCONJG(CHAM(NC,NV,NK,ISP,2)), &
++                           GCONJG(CHAM(NC,NV,NK,ISP,3))
++                     ENDDO
++                  ENDDO
++               ENDIF
++            ENDDO               ! NK
++        ENDIF !defectband
++            CLOSE(99)
++            IF (ADDBAND.GT.0) CLOSE(97)
++            IF (ADDBAND.GT.0) WRITE(*,*) 'Electrons in CBs included up to ', ADDBM(ISP) - CBM(ISP), ' eV above CBM.'
++         ENDDO
++
++      ENDIF                     !IO%IU6>=0
++      END SUBROUTINE WRITE_TRANSMATRIX
++#endif
++
+ !***********************************************************************
+ ! 
+ ! function that yields .TRUE. if a state is empty
+@@ -1349,8 +1529,8 @@
+             CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*A*4*PI*PI*FELECT/OMEGA, EPSDD)
+             CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*A*4*PI*PI*FELECT/OMEGA*DECEL*DECEL, EPSJJ)
+ #else
+-            CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*CONJG(A)*4*PI*PI*FELECT/OMEGA, EPSDD)
+-            CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*CONJG(A)*4*PI*PI*FELECT/OMEGA*DECEL*DECEL, EPSJJ)
++            CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*GCONJG(A)*4*PI*PI*FELECT/OMEGA, EPSDD)
++            CALL SLOT(-REAL(DECEL,q), ISMEAR, SIGMA, NEDOS, DELTAE, WEIGHT*GCONJG(A)*4*PI*PI*FELECT/OMEGA*DECEL*DECEL, EPSJJ)
+ #endif
+ 
+ 
+@@ -2220,9 +2400,9 @@
+             ! the choice of the imaginary shift is such that 
+             ! Imag  2/pi int_0^infty w' eps_imag(w') / (w'^2-w^2) d w' = eps_imag(w')
+ #ifdef timeordered
+-            VAL=(EPSDD(I_I)/(W_R-W_I+CMPLX(0,CSHIFT,q))-CONJG(EPSDD(I_I))/(W_R+W_I-CMPLX(0,CSHIFT,q)))*(-0.5)
++            VAL=(EPSDD(I_I)/(W_R-W_I+CMPLX(0,CSHIFT,q))-GCONJG(EPSDD(I_I))/(W_R+W_I-CMPLX(0,CSHIFT,q)))*(-0.5)
+ #else
+-            VAL=(EPSDD(I_I)/(W_R-W_I+CMPLX(0,CSHIFT,q))-CONJG(EPSDD(I_I))/(W_R+W_I+CMPLX(0,CSHIFT,q)))*(-0.5)
++            VAL=(EPSDD(I_I)/(W_R-W_I+CMPLX(0,CSHIFT,q))-GCONJG(EPSDD(I_I))/(W_R+W_I+CMPLX(0,CSHIFT,q)))*(-0.5)
+ #endif
+ 
+             ARG=REAL(I_I-1,q)/(NEDOS-1)
+@@ -2717,7 +2897,6 @@
+ !
+ !***********************************************************************
+ 
+-
+     SUBROUTINE READ_CDER_BETWEEN_STATES(WDES, IU0, IU, EXT)
+       USE wave
+       USE main_mpi
+@@ -2729,6 +2908,9 @@
+       CHARACTER (LEN=3), OPTIONAL :: EXT
+     ! local
+       INTEGER NB_TOT, NKPTS, ISPIN, I, IERR, NKPTS_NON_ZERO
++#ifdef FF_mod
++      GDEF, ALLOCATABLE :: CDS_TMP(:,:,:,:,:)
++#endif
+       GDEFS,ALLOCATABLE :: CDER_TMP(:,:,:,:,:)
+       INTEGER NKPTS_COUNTER,ISP
+       LOGICAL  LREAD
+@@ -2739,7 +2921,6 @@
+       IF (SUM(ABS(WPLASMA))>0) THEN
+          WPLASMON=WPLASMA
+       ENDIF
+-
+       !allow for downsampling from denser k-grids
+       LREAD=.TRUE.
+       IF ( ALLOCATED(IKPT_SELECT))THEN
+@@ -2752,18 +2933,18 @@
+                OPEN(UNIT=IU,FILE=DIR_APP(1:DIR_LEN)//'WAVEDER', &
+                FORM='UNFORMATTED',STATUS='OLD', IOSTAT=IERR)
+             ENDIF
+-            IF (IERR==0) THEN 
++            IF (IERR==0) THEN
+               READ(IU, IOSTAT=IERR) NB_TOT, NBANDS_CDER, NKPTS, ISPIN
+               IF ( ISPIN /= WDES%ISPIN .AND. IU0>=0 ) WRITE(IU0,'(A)')' Warning WAVEDER contains more spin cannels than current wavefunction'
+             ENDIF
+             CLOSE(IU)
+          ENDIF
+-         CALLMPI(M_bcast_i(WDES%COMM,NKPTS,1)) 
++         CALLMPI(M_bcast_i(WDES%COMM,NKPTS,1))
+          IF ( SIZE(IKPT_SELECT)/=NKPTS) THEN
+ !            IF(IU0>=0) WRITE(IU0,*)'ERROR in READ_CDER_BETWEEN_STATES:'//&
+ !               ' number of kpoint not compatible', SIZE(IKPT_SELECT),NKPTS
+             LREAD=.FALSE.
+-         ENDIF 
++         ENDIF
+          IF ( IU0>=0 ) WRITE(IU0,'(A,I4,A)',ADVANCE='NO')' WAVEDER contains more than',&
+             WDES%NKPTS,' k-points, downsampling... '
+          NKPTS=0
+@@ -2779,7 +2960,6 @@
+       NODES_IN_DIELECTRIC_FUNCTION=0
+       IERR=0
+       NBANDS_CDER=0
+-
+       IF (IU0>=0) THEN
+          IF (PRESENT(EXT)) THEN
+             OPEN(UNIT=IU,FILE=DIR_APP(1:DIR_LEN)//'WAVEDER.'//EXT, &
+@@ -2788,30 +2968,46 @@
+             OPEN(UNIT=IU,FILE=DIR_APP(1:DIR_LEN)//'WAVEDER', &
+             FORM='UNFORMATTED',STATUS='OLD', IOSTAT=IERR)
+          ENDIF
+-         IF (IERR==0) THEN 
++         IF (IERR==0) THEN
+            READ(IU, IOSTAT=IERR) NB_TOT, NBANDS_CDER, NKPTS, ISPIN
+-           IF (NB_TOT/= WDES%NB_TOT .OR. ISPIN /= WDES%ISPIN .OR. & 
++           IF (NB_TOT/= WDES%NB_TOT .OR. ISPIN /= WDES%ISPIN .OR. &
+               (NKPTS /= WDES%NKPTS .AND. NKPTS /= NKPTS_NON_ZERO .AND. .NOT. ALLOCATED(IKPT_SELECT)) ) THEN
+             WRITE(IU0,'(A)')' ----------------------------------------------------------------------------- '
+-            IF (NB_TOT/= WDES%NB_TOT .AND. IU0>=0 ) THEN 
++            IF (NB_TOT/= WDES%NB_TOT .AND. IU0>=0 ) THEN
+                WRITE(IU0,'(A,I8,I8)') ' WAVEDER not read: bands not compatible',NB_TOT, WDES%NB_TOT
+             ENDIF
+-            IF (ISPIN /= WDES%ISPIN .AND. IU0>=0 ) THEN 
++            IF (ISPIN /= WDES%ISPIN .AND. IU0>=0 ) THEN
+                WRITE(IU0,'(A,I8,I8)') ' WAVEDER not read: spin not compatible',ISPIN, WDES%ISPIN
+             ENDIF
+-            IF ((NKPTS /= WDES%NKPTS .AND. NKPTS /= NKPTS_NON_ZERO) .AND. .NOT. ALLOCATED(IKPT_SELECT) .AND. IU0>=0) THEN 
++            IF ((NKPTS /= WDES%NKPTS .AND. NKPTS /= NKPTS_NON_ZERO) .AND. .NOT. ALLOCATED(IKPT_SELECT) .AND. IU0>=0) THEN
+                WRITE(IU0,'(A,I8,I8)') ' WAVEDER not read: k-points not compatible',NKPTS, WDES%NKPTS
+             ENDIF
+             IERR=1
+            ENDIF
+          ENDIF
+-
+          IF (IERR==0) READ(IU, IOSTAT=IERR) NODES_IN_DIELECTRIC_FUNCTION
+          IF (IERR==0) READ(IU, IOSTAT=IERR) WPLASMON
+          IF (IERR==0) THEN
+             ALLOCATE(CDER_BETWEEN_STATES( WDES%NB_TOT, NBANDS_CDER, WDES%NKPTS, WDES%ISPIN, 3))
+             CDER_BETWEEN_STATES=0
+             !store CDER appropriately
++
++#ifdef FF_mod
++            IF (NB_TOT /= WDES%NB_TOT .AND. IERR==0) THEN
++               write(IU0,'(1x,(a),2(1x,i4))') 'WARNING: WAVEDER number of bands changed, try to continue!!',NB_TOT,WDES%NB_TOT
++               allocate(CDS_TMP(NB_TOT, NB_TOT, WDES%NKPTS, WDES%ISPIN, 3))
++               CDS_TMP=0
++               READ(IU) CDS_TMP(:,:,1:NKPTS,:,:)
++               CDER_BETWEEN_STATES(1:WDES%NB_TOT,1:WDES%NB_TOT,1:NKPTS,1:WDES%ISPIN,1:3)=&
++               CDS_TMP(1:WDES%NB_TOT,1:WDES%NB_TOT,1:NKPTS,1:WDES%ISPIN,1:3)
++               deallocate(CDS_TMP)
++            else
++               IF (IERR==0) READ(IU) CDER_BETWEEN_STATES(:,:,1:NKPTS,:,:)
++            endif
++#else
++            READ(IU,IOSTAT=IERR) CDER_BETWEEN_STATES(:,:,1:NKPTS,:,:)
++#endif
++
+             IF ( ALLOCATED(IKPT_SELECT) .AND. LREAD )THEN
+                ALLOCATE(CDER_TMP(WDES%NB_TOT, NBANDS_CDER, NKPTS, WDES%ISPIN, 3))
+                CDER_TMP=0
+@@ -2841,15 +3037,24 @@
+          CALLMPI( M_bcast_i(WDES%COMM, NBANDS_CDER , 1))
+          CALLMPI( M_bcast_i(WDES%COMM, IERR, 1))
+          IF (IERR==0) THEN
+-            ALLOCATE(CDER_BETWEEN_STATES( WDES%NB_TOT, NBANDS_CDER, WDES%NKPTS, WDES%ISPIN, 3))
++            ALLOCATE(CDER_BETWEEN_STATES( WDES%NB_TOT, NBANDS_CDER, WDES%NKPTS,WDES%ISPIN, 3))
+             CDER_BETWEEN_STATES=0
+          ENDIF
+       ENDIF
+-
+       IF (IERR/=0) THEN
+          CALL VTUTOR('E','GW optics', &
+               &               0.0_q,1,1,1,(0.0_q,0.0_q),1,.TRUE.,1,IU0,3)
++#ifndef FF_mod
++         STOP
++#endif
+       ENDIF
++#ifdef FF_mod
++      IF (IERR/=0) then
++         write(*,*) 'IERR',IERR
++         write(*,*)
++         STOP
++      endif
++#endif
+ 
+       IF (IERR==0) THEN
+ #ifdef gammareal
+@@ -2865,7 +3070,7 @@
+          ELSE
+             IF (IU0>=0) WRITE(IU0,*) 'the WAVEDER file was read successfully'
+          ENDIF
+-      ELSE 
++      ELSE
+          IF (IU0>=0) WRITE(IU0,*) 'the WAVEDER file was not read'
+          IF (ALLOCATED(CDER_BETWEEN_STATES)) DEALLOCATE(CDER_BETWEEN_STATES)
+       ENDIF
