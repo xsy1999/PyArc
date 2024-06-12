@@ -65,7 +65,7 @@ run with default parameters for test files
     ```
     users can obtain final results files under the work path they defined
  
-4. Users can find GaAs data as an example in test_files. And all parameter input files like KPOINTS file can be found in  The Transmatrix file and wannier interpolated data file are zipped. The size of wannier zip file is large and please download it seperately.
+4. Users can find GaAs data as an example in 'test_files'. And all parameter input files like KPOINTS file can be found in 'input_files' under test_files menu. The Transmatrix file and wannier interpolated data file are zipped. The size of wannier zip file is large and please download it seperately.
 
 ## Contributing
 To contribute, see the above section on installing [for development](#for-development).
