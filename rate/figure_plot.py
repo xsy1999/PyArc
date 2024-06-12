@@ -87,7 +87,8 @@ class figure_plot:
                      VB: np.ndarray, CB: np.ndarray, soc=False, startband = 0, fontsize = 38):
         self.Vcell_cm = Vcell * const.Ang2cm ** 3
         FineKptfile = os.path.join(self.path + 'wannier90_geninterp.kpt')
-        FineEigfile = os.path.join(self.path + 'wannier90_geninterp.dat')
+        FineEigfile1 = os.path.join(self.path + 'wannier90_geninterp.dat')
+        FineEigfile2 = os.path.join(self.path + 'Eigen_geninterp.dat')
         Ori_eigfile = os.path.join(self.path + 'EIGENVAL')
         self.soc = soc
         nktot, kpts = read_kpt(FineKptfile)
@@ -98,8 +99,10 @@ class figure_plot:
 
         #substitute the kpoints coordinates in wannier.dat
         #obtain dense mesh Eigenvalues
-        if os.path.exists(FineEigfile) is True:
-            _, eignum, self.Eigs = read_wannier_eigs(FineEigfile)
+        if os.path.exists(FineEigfile1) is True:
+            _, eignum, self.Eigs = read_wannier_eigs(FineEigfile1)
+        elif os.path.exists(FineEigfile1) is True:
+            _, eignum, self.Eigs = read_wannier_eigs(FineEigfile2)
         elif os.path.exists(Ori_eigfile):
             Eigs = self.interpolator.interpolate_kpoints(Eigenvalue, kpts[:, 1:])
             Eigs = np.expand_dims(Eigs, axis=2)
