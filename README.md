@@ -1,5 +1,5 @@
 # PyArc
-A python package for computing absorption and radiative coefficients from first principles based on the scheme proposed by [Xie Zhang *et al.*](https://doi.org/10.1021/acsenergylett.8b01297). The code also offers a series of functions to visualize the calculation results graphically and analyze the microscopic mechanism beneath those results. More details about those functions can be found in our recent paper. 
+This is a python package for computing absorption and radiative coefficients from first principles based on the scheme proposed by [Xie Zhang *et al.*](https://doi.org/10.1021/acsenergylett.8b01297). The code also offers a series of functions to visualize the calculation results graphically and analyze the microscopic mechanism beneath those results. More details about those functions can be found in our recent paper. 
 
 ## Installation
 PyArc is implemented in python and can be installed through `pip`.
