@@ -35,10 +35,10 @@ To apply the patch file, please download the related 'optics.diff' file into VAS
     ```
     and then recompile VASP. After those steps, one can find the "Transmatrix" file in the calculation directory.
 
-A good explanation of our methodology can be found in this book [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high-quality first-principles calculation with enough k points for sampling the Brillouin Zone in the electronic self-consistent loop is necessary for accurate absorption and radiative coefficients since too coarse original k-grid in the Brillouin zone may introduce pronounced deviations.
+    A good explanation of our methodology can be found in this book [Recombination in Semiconductors](https://doi.org/10.1017/CBO9780511470769). A high-quality first-principles calculation with enough k points for sampling the Brillouin Zone in the electronic self-consistent loop is necessary for accurate absorption and radiative coefficients since too coarse original k-grid in the Brillouin zone may introduce pronounced deviations.
 
 1. Calculate the eigenvalues and transmatrix for a dense k-point grid by using the interpolation method offered in our code. This is facilitated using the `Interp_main.py` function. Through setting relevant parameters like the magnification factor and the valence and conduction band indices to interpolate, the interpolated eigenvalues and transmatrix values will be obtained as `Eigen_geninterp.dat` and `matrix_fine.dat` file respectively.
-The way to excute `Interp_main.py` function is as follows (default parameters for testfiles):
+    The way to excute `Interp_main.py` function is as follows (default parameters for testfiles):
     ```
     $python Interp_main.py
     ```
