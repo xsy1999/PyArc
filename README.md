@@ -29,7 +29,7 @@ The basic steps are summarized below:
 
 0. Perform a first-principles calculation for the target material system. The transmatrix values (Transmatrix file) can be obtained by setting the parameter 'LOPTICS = True' in the INCAR file while using a modified VASP version. The concrete patch file for VASP can be found in the vasp_patch directory and we offered file for different versions.
 
-To apply the patch file, please download the related 'optics.diff' file into VASP installation directory and use the patch command
+    To apply the patch file, please download the related 'optics.diff' file into VASP installation directory and use the patch command
     ```
     $patch ./src/linear_optics.F < optics.diff
     ```
