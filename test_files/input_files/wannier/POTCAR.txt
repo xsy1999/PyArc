@@ -1,0 +1,4 @@
+We use the following POTCAR files for VASP calculations
+PAW_PBE Ga_d 06Jul2010 file                 
+and 
+PAW_PBE As 22Sep2009 file                 
