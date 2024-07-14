@@ -47,7 +47,7 @@ The basic steps are summarized below:
     $python Interp_main.py -VB 34 35 36 -CB 37 38 39 -m 10 10 10
     ```
     1.1 Another way to generate the interpolated eigen values is to utilize the wannier interpolation tools which have been implemented in VASP after Version 5th. Generally the wannier interpolation methods can yield a more precise interpolated results thus significantly improve the accuracy of final results. Concrete instruction and manual of wannier methods in VASP can be found in https://www.vasp.at/wiki/index.php/LWANNIER90 and https://wannier.org/support/
-    Here, we also offer the wannier related parameter files `wannier90.win` in the `input_files/wannier` directory. 
+    Here, we also offer the wannier related parameter files `wannier90.win` in the `input_files/wannier` directory (the version of VASP of our example is VASP 5.4.4). 
     concrete steps of wannier interpolation for eigenvalues in VASP are as follows:
 
     1). prepare the input files (those five files under the `input_files/wannier` directory), and add the parameter `LWANNIER90=.TRUE.` in INCAR file, also set proper parameters in `Wannier90.win` file
