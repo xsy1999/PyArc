@@ -1,0 +1,257 @@
+@@ -648,6 +648,7 @@ CONTAINS
+                               LMDIM, CDIJ, CQIJ, GRID, GRIDC, GRIDUS, C_TO_US, ENERGY_DER, CHAM)
+ 
+     USE base
++    USE constant
+     USE wave
+     USE nonl_high
+     USE lattice
+@@ -687,12 +688,13 @@ CONTAINS
+ 
+ ! output
+     GDEFS   :: CHAM(:,:,:,:,:)
++    GDEF,allocatable  :: CHAM_(:,:,:,:,:)
+     REAL(q) :: ENERGY_DER(:,:,:,:)
+ ! local variables
+     TYPE (wavedes)      :: WDES1  ! descriptor for W1
+     TYPE (wavespin)     :: W1     ! stores  the derivative of the wavefunction with respect to k_i
+     TYPE (wavefun)      :: WTMP   ! temporary
+-    INTEGER :: IDIR,ISP,NK,N1
++    INTEGER :: IDIR,ISP,NK,N1,N2
+     LOGICAL :: LDONE
+ 
+     ENERGY_DER=0
+@@ -763,6 +765,26 @@ CONTAINS
+     CALLMPI( M_sum_single(WDES%COMM_KINTER, CHAM, 2*SIZE(CHAM)))
+ #endif
+     CALLMPI( M_sum_d(WDES%COMM_KINTER, ENERGY_DER, SIZE(ENERGY_DER)))
++
++      allocate(CHAM_(WDES%NB_TOT,WDES%NB_TOT,WDES%NKPTS,WDES%ISPIN,3))
++      !ff rescale the stuff to fit with vasp44.bse
++      DO IDIR=1,3
++      DO ISP=1,WDES%ISPIN
++      DO NK=1,WDES%NKPTS
++      DO N2=1,WDES%NB_TOT
++      DO N1=1,WDES%NB_TOT
++         CHAM_(N1,N2,NK,ISP,IDIR)=CHAM(N1,N2,NK,ISP,IDIR)*AUTOA*(REAL(W0%CELTOT(N1,NK,ISP)-W0%CELTOT(N2,NK,ISP),q))/(2.0_q*HSQDTM)
++      ENDDO
++      ENDDO
++      ENDDO
++      ENDDO
++      ENDDO
++
++!          CALLMPI( M_sum_g(WDES%COMM,CHAM_(1,1,1,1,1),WDES%NB_TOT**2*WDES%ISPIN*WDES%NKPTS*3) )
++
++      CALL WRITE_TRANSMATRIX(WDES, W0, CHAM_(:,:,:,:,:),IO,INFO)
++      deallocate(CHAM_)
++
+     CALL DEALLOCW(W1)
+ 
+   END SUBROUTINE LRF_EPSILON_MELS
+@@ -934,6 +956,164 @@ CONTAINS
+ 
+   END SUBROUTINE LRF_EPSILON_COMPUTE
+ 
++  SUBROUTINE WRITE_TRANSMATRIX(WDES, W0, CHAM, IO, INFO)
++      use base
++      use wave
++      USE constant
++      IMPLICIT NONE
++      TYPE (wavedes) :: WDES
++      TYPE (wavespin):: W0
++      GDEF           :: CHAM(:,:,:,:,:) ! CHAM(m,n,NK,ISP,j)<phi_nk+q|e^iq|phi_mk>
++      TYPE (in_struct)   :: IO
++      TYPE (info_struct) :: INFO
++!local
++      INTEGER   :: NC,NV,NK,NBVAL(INFO%ISPIN),NBCON(INFO%ISPIN),ISP
++      REAL(q)   :: EC,EV,E1,E2,CBM(INFO%ISPIN),ADDBM(INFO%ISPIN)
++      COMPLEX(q):: imag
++
++      INTEGER IU5,IU0,IDUM
++      INTEGER ITYP,NTYP
++      INTEGER ADDBAND, N, IERR, DEFECTBAND
++      REAL(q) RDUM
++      COMPLEX(q) CDUM
++      LOGICAL LOPEN,LDUM
++      LOGICAL LTMEXTENDED
++      CHARACTER (1) :: CHARAC
++
++      imag=(0.0_q,1.0_q)
++
++      IU5=IO%IU5
++
++      !     ADDBAND>0 means that transition matrix elements for
++      !     ADDBAND conduction
++      !     bands cb-cb transition matrix elements are written to
++      !     Transmatrix.
++
++      ADDBAND=0
++
++      LOPEN=.FALSE.
++      OPEN(UNIT=IU5,FILE='INCAR',STATUS='OLD')
++
++      CALL RDATAB(LOPEN,'INCAR',IU5,'ADDBAND','=','#',';','I', &
++     &            ADDBAND,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                  ((IERR==0).AND.(N<1))) THEN
++            WRITE(*,*)'Error reading item ''ADDBAND'' from file INCAR.'
++      ENDIF
++      CLOSE(IU5)
++
++      DEFECTBAND=0
++
++      LOPEN=.FALSE.
++      OPEN(UNIT=IU5,FILE='INCAR',STATUS='OLD')
++
++      CALL RDATAB(LOPEN,'INCAR',IU5,'DEFECTBAND','=','#',';','I', &
++     &            DEFECTBAND,RDUM,CDUM,LDUM,CHARAC,N,1,IERR)
++      IF (((IERR/=0).AND.(IERR/=3)).OR. &
++     &                  ((IERR==0).AND.(N<1))) THEN
++          WRITE(*,*)'Error reading item ''DEFECTBAND'' from file INCAR.'
++      ENDIF
++      CLOSE(IU5)
++
++!     We introduce spin-dependent valence band numbers to deal with
++!     ferromagnets.
++
++      NBVAL=1
++      DO ISP=1,INFO%ISPIN
++         DO NK=1,WDES%NKPTS
++            DO N=1,WDES%NB_TOT
++               IF (W0%FERTOT(N,NK,ISP).gt.0.4_q) THEN
++                   IF (N.GT.NBVAL(ISP)) NBVAL(ISP)=N
++               ENDIF
++            ENDDO
++         ENDDO
++         NBCON(ISP)=WDES%NB_TOT-NBVAL(ISP)
++      ENDDO
++
++      IF (IO%IU6>=0) THEN
++          DO ISP=1,INFO%ISPIN
++             IF (ISP.eq.1) write(*,*) 'Write Transmatrix.',NBVAL(ISP),NBCON(ISP)
++             IF (ISP.eq.2) write(*,*) 'Write Transmatrix_s2.',NBVAL(ISP),NBCON(ISP)
++             CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,1,1),q)
++             ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,1,1),q)
++             IF (DEFECTBAND.ne.0) OPEN(192,FILE ='Transmatrix_defectband_from_VBM')
++             IF (DEFECTBAND.ne.0) OPEN(193,FILE ='Transmatrix_defectband_to_CBM')
++             IF (ISP.eq.1) OPEN(99,FILE = 'Transmatrix')
++             IF (ISP.eq.2) OPEN(99,FILE = 'Transmatrix_s2')
++             IF (ADDBAND.GT.0) THEN
++                 IF (ISP.eq.1) OPEN(97,FILE ='Transmatrix_additional')
++                 IF (ISP.eq.2) OPEN(97,FILE ='Transmatrix_s2_additional')
++             ENDIF
++        IF (DEFECTBAND.ne.0) THEN
++                           DO NK=1,WDES%NKPTS
++                           IF (REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q).LT.CBM(ISP)) CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q)
++                           IF (REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q).LT.ADDBM(ISP)) ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q)
++                           !from VBM
++                              NC=DEFECTBAND
++                              EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                              DO NV=1,NBVAL(ISP)
++                                 EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                                 write(192,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                                    WDES%WTKPT(NK),NC,NV,EC,EV,&
++                                    GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                                    GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                                    GCONJG(CHAM(NC,NV,NK,ISP,3))
++                              ENDDO !NV
++                        !to CBM
++                         DO NC=NBVAL(ISP)+1,NBCON(ISP)+NBVAL(ISP)
++                           EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                           NV=DEFECTBAND
++                              EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                              write(193,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                                WDES%WTKPT(NK),NC,NV,EC,EV,&
++                                GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                                GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                                GCONJG(CHAM(NC,NV,NK,ISP,3))
++                         ENDDO !NC
++                         ENDDO !NK
++                      CLOSE(192)
++                      CLOSE(193)
++                      IF (DEFECTBAND.GT.0) WRITE(*,*) 'HP: Considered band ', DEFECTBAND, ' as the defect band, and wrote out all relevant dipole matrix elements. '
++
++        ELSE
++            DO NK=1,WDES%NKPTS
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q).LT.CBM(ISP)) CBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1,NK,ISP),q)
++               IF (REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q).LT.ADDBM(ISP)) ADDBM(ISP) = REAL(W0%CELTOT(NBVAL(ISP)+1+ADDBAND,NK,ISP),q)
++               DO NC=NBVAL(ISP)+1,NBCON(ISP)+NBVAL(ISP)
++                  EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                  DO NV=1,NBVAL(ISP)
++                     EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                     write(99,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                        WDES%WTKPT(NK),NC,NV,EC,EV,&
++                        GCONJG(CHAM(NC,NV,NK,ISP,1)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,2)),&
++                        GCONJG(CHAM(NC,NV,NK,ISP,3))
++                  ENDDO
++               ENDDO
++
++               IF (ADDBAND.GT.0) THEN
++                   DO NV=NBVAL(ISP)+1,NBVAL(ISP)+ADDBAND
++                      EV=REAL(W0%CELTOT(NV,NK,ISP),q)
++                      DO NC=NV+1,NBCON(ISP)+NBVAL(ISP)
++                         EC=REAL(W0%CELTOT(NC,NK,ISP),q)
++                         write(97,'(1x,E17.11,2(1x,I4),8(1x,E17.11))') &
++                             WDES%WTKPT(NK),NC,NV,EC,EV, &
++                             GCONJG(CHAM(NC,NV,NK,ISP,1)), &
++                             GCONJG(CHAM(NC,NV,NK,ISP,2)), &
++                             GCONJG(CHAM(NC,NV,NK,ISP,3))
++                      ENDDO
++                   ENDDO
++                ENDIF
++             ENDDO               ! NK
++         ENDIF !defectband
++             CLOSE(99)
++             IF (ADDBAND.GT.0) CLOSE(97)
++             IF (ADDBAND.GT.0) WRITE(*,*) 'Electrons in CBs included up to ', ADDBM(ISP) - CBM(ISP), ' eV above CBM.'
++          ENDDO
++
++      ENDIF                     !IO%IU6>=0
++      END SUBROUTINE WRITE_TRANSMATRIX
++
+ !***********************************************************************
+ !
+ ! function that yields .TRUE. if a state is empty
+@@ -2878,6 +3058,7 @@ DOESI DOS = 0.0_q; DOSI = 0.0_q; SIGMA =
+       CHARACTER (LEN=3), OPTIONAL :: EXT
+     ! local
+       INTEGER NB_TOT, NKPTS, ISPIN, I, IERR, NKPTS_NON_ZERO
++      GDEF, ALLOCATABLE :: CDS_TMP(:,:,:,:,:)
+       GDEFS,ALLOCATABLE :: CDER_TMP(:,:,:,:,:)
+       INTEGER NKPTS_COUNTER,ISP
+       LOGICAL  LREAD
+@@ -2970,6 +3151,19 @@ DOESI DOS = 0.0_q; DOSI = 0.0_q; SIGMA =
+             ALLOCATE(CDER_BETWEEN_STATES( WDES%NB_TOT, NBANDS_CDER, WDES%NKPTS, WDES%ISPIN, 3))
+             CDER_BETWEEN_STATES=0
+             !store CDER appropriately
++
++            IF (NB_TOT /= WDES%NB_TOT .AND. IERR==0) THEN
++               write(IU0,'(1x,(a),2(1x,i4))') 'WARNING: WAVEDER number of bands changed, try to continue!!',NB_TOT,WDES%NB_TOT
++               allocate(CDS_TMP(NB_TOT, NB_TOT, WDES%NKPTS, WDES%ISPIN, 3))
++               CDS_TMP=0
++               READ(IU) CDS_TMP(:,:,1:NKPTS,:,:)
++               CDER_BETWEEN_STATES(1:WDES%NB_TOT,1:WDES%NB_TOT,1:NKPTS,1:WDES%ISPIN,1:3)=&                                           CDS_TMP(1:WDES%NB_TOT,1:WDES%NB_TOT,1:NKPTS,1:WDES%ISPIN,1:3)
++               deallocate(CDS_TMP)
++           else
++              IF (IERR==0) READ(IU) CDER_BETWEEN_STATES(:,:,1:NKPTS,:,:)
++           endif
++           READ(IU,IOSTAT=IERR) CDER_BETWEEN_STATES(:,:,1:NKPTS,:,:)
++
+             IF ( ALLOCATED(IKPT_SELECT) .AND. LREAD )THEN
+                ALLOCATE(CDER_TMP(NB_TOT, NBANDS_CDER, NKPTS, WDES%ISPIN, 3))
+                CDER_TMP=0
+@@ -3013,7 +3207,13 @@ DOESI DOS = 0.0_q; DOSI = 0.0_q; SIGMA =
+ 
+       IF (IERR/=0) THEN
+          CALL vtutor%write(isAlert, GWoptics)
++         STOP
+       ENDIF
++      IF (IERR/=0) then
++         write(*,*) 'IERR',IERR
++         write(*,*)
++         STOP
++      endif
+ 
+       IF (IERR==0) THEN
+ #ifdef gammareal
